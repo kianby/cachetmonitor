@@ -1,0 +1,6 @@
+{
+    "api_token": "token",
+    "api_url": "http://status.domain.tld/api/v1",
+    "lxc_check": false,
+    "lxc_component_prefix": "container-"    
+}
