@@ -5,62 +5,88 @@ import os
 import json
 import re
 import subprocess
+import requests
 from clize import clize, run
 from conf import schema
 from jsonschema import validate
 import cachetclient.cachet as cachet
 
-COMPONENT_STATUS_OK = 1
-COMPONENT_STATUS_KO = 4
+COMPONENT_STATUS_OK = '1'
+COMPONENT_STATUS_KO = '4'
 
 lxcls_pattern = re.compile('(\d+)\s+(\w+)\s+\d\s+')
 
 
-def monitor(conf):
+def check_url(url, regex):
 
-    # /ping
-    #ping = cachet.Ping(endpoint=conf['api_url'])
-    # print(ping.get())
+    try:
+        response = requests.request("GET", url)
+        if re.search(regex, response.text):
+            # print(response.text)
+            success = True
+            cause = ''
+        else:
+            success = False
+            cause = 'not_found'
+    except:
+        success = False
+        cause = 'timeout'
+    return {'success': success, 'cause': cause}
+
+
+def monitor(conf):
 
     # retrieve component list
     components = cachet.Components(
         endpoint=conf['api_url'], api_token=conf['api_token'])
     json_components = json.loads(components.get())
 
-    # a dict where key is id and value is component struct
+    # dict where key is id and value is component struct
     component_dict = dict()
     for component in json_components['data']:
-        #print('id {} name {}'.format(component['id'], component['name']))
         component['processed'] = False
+        component['newstatus'] = component['status']
         component_dict[component['name']] = component
 
     # check LXC
-    if conf['lxc_check']:
+    if conf['lxc']['check']:
         output = str(subprocess.check_output(
             ['lxc-ls', '-f'], universal_newlines=True))
         for line in output.splitlines():
             r = re.match(lxcls_pattern, line)
             if r:
-                name = 'container-' + r.group(1)
+                name = conf['lxc']['component_prefix'] + r.group(1)
                 state = r.group(2)
-                #print('name {} state {}'.format(name, state))
                 component = component_dict.get(name, None)
                 if component:
-                    status = COMPONENT_STATUS_KO
-                    if state == 'RUNNING':
-                        status = COMPONENT_STATUS_OK
-                    print('update {} => {}'.format(name, status))
-                    components.put(id=component['id'], status=status)
                     component['processed'] = True
+                    if state == 'RUNNING':
+                        component['newstatus'] = COMPONENT_STATUS_OK
+                    else:
+                        component['newstatus'] = COMPONENT_STATUS_KO
 
-    # test URL
+    # check URLs
+    if conf['url']['check']:
+        for endpoint in conf['url']['endpoints']:
+            component = component_dict.get(endpoint['component'], None)
+            if component:
+                component['processed'] = True
+                r = check_url(endpoint['url'], endpoint['regex'])
+                if r['success']:
+                    component['newstatus'] = COMPONENT_STATUS_OK
+                else:
+                    component['newstatus'] = COMPONENT_STATUS_KO
 
-    # scrap Web page
-
-    # assume all unprocessed components are KO
+    # send status to CacheHQ for changed and unprocessed components
     for component in component_dict.values():
+
         if not component['processed']:
-            components.put(id=component['id'], status=COMPONENT_STATUS_KO)
+            component['newstatus'] = COMPONENT_STATUS_KO
+
+        if component['newstatus'] != component['status']:
+            # print(component)
+            components.put(id=component['id'],
+                           status=component['newstatus'])
 
 
 def load_json(filename):

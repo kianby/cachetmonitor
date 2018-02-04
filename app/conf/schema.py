@@ -8,6 +8,64 @@ json_schema = """
 {
     "$ref": "#/definitions/Cachet",
     "definitions": {
+        "Lxc": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "check": {
+                    "type": "boolean"
+                },
+                "component_prefix": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "check",
+                "component_prefix"
+            ],
+            "title": "lxc"
+        },
+        "Endpoint": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "component": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "regex": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "component",
+                "regex",
+                "url"
+            ],
+            "title": "endpoint"
+        },
+        "URL": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "check": {
+                    "type": "boolean"
+                },
+                "endpoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Endpoint"
+                    }
+                }
+            },
+            "required": [
+                "check",
+                "endpoints"
+            ],
+            "title": "url"
+        },
         "Cachet": {
             "type": "object",
             "additionalProperties": false,
@@ -18,18 +76,18 @@ json_schema = """
                 "api_url": {
                     "type": "string"
                 },
-                "lxc_check": {
-                    "type": "boolean"
+                "lxc": {
+                    "$ref": "#/definitions/Lxc"
                 },
-                "lxc_component_prefix": {
-                    "type": "string"
+                "url": {
+                    "$ref": "#/definitions/URL"
                 }
             },
             "required": [
                 "api_token",
                 "api_url",
-                "lxc_check",
-                "lxc_component_prefix"
+                "lxc",
+                "url"
             ],
             "title": "cachet"
         }

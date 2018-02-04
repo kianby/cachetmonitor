@@ -1,6 +1,23 @@
 {
     "api_token": "token",
     "api_url": "http://status.domain.tld/api/v1",
-    "lxc_check": false,
-    "lxc_component_prefix": "container-"    
+    "lxc": { 
+        "check": false,
+        "component_prefix": "container-"
+    },
+    "url": {
+        "check": false,
+        "endpoints": [
+            {
+                "component": "app1",
+                "url": "http://app1.domain.tld", 
+                "regex": ".*"
+            },
+            {
+                "component": "site",
+                "url": "http://site.domain.tld", 
+                "regex": "<title>My site</title>"
+            }
+        ]
+    }
 }
