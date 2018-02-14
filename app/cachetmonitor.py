@@ -22,7 +22,6 @@ def check_url(url, regex):
     try:
         response = requests.request("GET", url)
         if re.search(regex, response.text):
-            # print(response.text)
             success = True
             cause = ''
         else:
